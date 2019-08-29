@@ -12,10 +12,12 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  OpenCV
+  cv_bridge
 )
 find_package(realsense2 REQUIRED)
 
-
+find_package(OpenCV REQUIRED)
 
 #target_link_libraries(my_pcl_tutorials ${realsense2_LIBRARY})
 
@@ -142,7 +144,7 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/my_pcl_tutorial_node.cpp)
 add_executable(my_pcl_tutorial src/pcl_publish.cpp)
 add_dependencies(my_pcl_tutorial ${catkin_EXPORTED_TARGETS})
-target_link_libraries(my_pcl_tutorial realsense2 ${catkin_LIBRARIES})
+target_link_libraries(my_pcl_tutorial realsense2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
 ## Rename C++ executable without prefix

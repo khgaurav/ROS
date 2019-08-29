@@ -4,6 +4,10 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/passthrough.h>
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/Image.h>
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 ros::Publisher pub;
@@ -33,11 +37,12 @@ pcl_ptr points_to_pcl(const rs2::points &points)
 
 int main(int argc, char *argv[]) try
 {
-    ros::init(argc, argv, "my_pcl_tutorial");
+    ros::init(argc, argv, "rs_all_stream", ros::init_options::AnonymousName);
 
     typedef pcl::PointCloud<pcl::PointXYZ> PCLCloud;
     ros::NodeHandle n;
-    ros::Publisher output_pub_ = n.advertise<PCLCloud>("rs_pcl", 100);
+    ros::Publisher pcl_pub = n.advertise<PCLCloud>("rs_pcl", 100);
+    ros::Publisher rgb_pub = n.advertise<sensor_msgs::Image>("rs_rgb", 100);
     
     // ros::Rate loop_rate(30);
 
@@ -58,6 +63,9 @@ int main(int argc, char *argv[]) try
 
         auto depth = frames.get_depth_frame();
 
+	//RGB frame
+	auto colour= frames.get_color_frame();
+
         // Generate the pointcloud and texture mappings
         points = pc.calculate(depth);
 
@@ -70,9 +78,22 @@ int main(int argc, char *argv[]) try
         pass.setFilterLimits(0.0, 3.0);
         auto pointer_u = *cloud_filtered;
         pass.filter(pointer_u);
-	pointer_u.header.frame_id="pcl_frame";
-        
-        output_pub_.publish(pointer_u);
+	    pointer_u.header.frame_id="pcl_frame";
+        //Publish PCL after converting
+        pcl_pub.publish(pointer_u);
+	
+	//RS2 to matrix
+	cv::Mat color(cv::Size(640, 480), CV_8UC3, (void*)colour.get_data(), cv::Mat::AUTO_STEP);
+	cv_bridge::CvImage lo_img;
+
+	lo_img.encoding = "bgr8";                        // or which enconding your data has
+	lo_img.header.stamp = ros::Time::now();          //  or whatever timestamp suits here;
+	lo_img.header.frame_id = "rgb_frame";       // frame id as neededby you
+	lo_img.image = color;                          // point cv_bridge to your object
+
+	rgb_pub.publish(lo_img.toImageMsg());
+
+
     }
 
     return EXIT_SUCCESS;
