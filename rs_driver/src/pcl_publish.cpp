@@ -12,6 +12,16 @@
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 ros::Publisher pub;
 
+// class filter_options
+// {
+// public:
+//     filter_options(const std::string name, rs2::filter &filter);
+//     filter_options(filter_options &&other);
+//     std::string filter_name;     //Friendly name of the filter
+//     rs2::filter &filter;         //The filter in use
+//     std::atomic_bool is_enabled; //A boolean controlled by the user that determines whether to apply the filter or not
+// };
+
 pcl_ptr points_to_pcl(const rs2::points &points)
 {
     pcl_ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -43,7 +53,7 @@ int main(int argc, char *argv[]) try
     ros::NodeHandle n;
     ros::Publisher pcl_pub = n.advertise<PCLCloud>("rs_pcl", 100);
     ros::Publisher rgb_pub = n.advertise<sensor_msgs::Image>("rs_rgb", 100);
-    
+
     // ros::Rate loop_rate(30);
 
     // Declare pointcloud object, for calculating pointclouds and texture mappings
@@ -55,6 +65,12 @@ int main(int argc, char *argv[]) try
     rs2::pipeline pipe;
     // Start streaming with default recommended configuration
     pipe.start();
+    // Spatial    - edge-preserving spatial smoothing
+    rs2::spatial_filter spat_filter;
+
+    // Initialize a vector that holds filters and their options
+    // std::vector<filter_options> filters;
+    // filters.emplace_back("Spatial", spat_filter);
 
     while (ros::ok())
     {
@@ -62,38 +78,47 @@ int main(int argc, char *argv[]) try
         auto frames = pipe.wait_for_frames();
 
         auto depth = frames.get_depth_frame();
+        if (!depth) // Should not happen but if the pipeline is configured differently
+            break;
 
-	//RGB frame
-	auto colour= frames.get_color_frame();
+        rs2::frame filtered = depth; // Does not copy the frame, only adds a reference
+
+        // for (auto &&filter : filters)
+        // {
+        //     if (filter.is_enabled)
+        //     {
+        filtered = spat_filter.process(filtered);
+        //     }
+        // }
+
+        //RGB frame
+        auto colour = frames.get_color_frame();
 
         // Generate the pointcloud and texture mappings
         points = pc.calculate(depth);
 
-        // auto pcl_points =
         auto pcl_points = points_to_pcl(points);
         pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PassThrough<pcl::PointXYZ> pass;
         pass.setInputCloud(pcl_points);
         pass.setFilterFieldName("z");
-        pass.setFilterLimits(0.0, 3.0);
+        pass.setFilterLimits(0.0, 5.0);
         auto pointer_u = *cloud_filtered;
         pass.filter(pointer_u);
-	    pointer_u.header.frame_id="pcl_frame";
+        pointer_u.header.frame_id = "pcl_frame";
         //Publish PCL after converting
         pcl_pub.publish(pointer_u);
-	
-	//RS2 to matrix
-	cv::Mat color(cv::Size(640, 480), CV_8UC3, (void*)colour.get_data(), cv::Mat::AUTO_STEP);
-	cv_bridge::CvImage lo_img;
 
-	lo_img.encoding = "bgr8";                        // or which enconding your data has
-	lo_img.header.stamp = ros::Time::now();          //  or whatever timestamp suits here;
-	lo_img.header.frame_id = "rgb_frame";       // frame id as neededby you
-	lo_img.image = color;                          // point cv_bridge to your object
+        //RS2 to matrix
+        cv::Mat color(cv::Size(640, 480), CV_8UC3, (void *)colour.get_data(), cv::Mat::AUTO_STEP);
+        cv_bridge::CvImage lo_img;
 
-	rgb_pub.publish(lo_img.toImageMsg());
+        lo_img.encoding = "bgr8";               // or which enconding your data has
+        lo_img.header.stamp = ros::Time::now(); //  or whatever timestamp suits here;
+        lo_img.header.frame_id = "rgb_frame";   // frame id as neededby you
+        lo_img.image = color;                   // point cv_bridge to your object
 
-
+        rgb_pub.publish(lo_img.toImageMsg());
     }
 
     return EXIT_SUCCESS;

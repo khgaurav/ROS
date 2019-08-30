@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(my_pcl_tutorial)
+project(rs_driver)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -19,7 +19,7 @@ find_package(realsense2 REQUIRED)
 
 find_package(OpenCV REQUIRED)
 
-#target_link_libraries(my_pcl_tutorials ${realsense2_LIBRARY})
+#target_link_libraries(rs_drivers ${realsense2_LIBRARY})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -112,7 +112,7 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES my_pcl_tutorial
+#  LIBRARIES rs_driver
 #  CATKIN_DEPENDS librealsense2 pcl_conversions pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
 )
@@ -130,7 +130,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/my_pcl_tutorial.cpp
+#   src/${PROJECT_NAME}/rs_driver.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -141,10 +141,10 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/my_pcl_tutorial_node.cpp)
-add_executable(my_pcl_tutorial src/pcl_publish.cpp)
-add_dependencies(my_pcl_tutorial ${catkin_EXPORTED_TARGETS})
-target_link_libraries(my_pcl_tutorial realsense2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+# add_executable(${PROJECT_NAME}_node src/rs_driver_node.cpp)
+add_executable(rs_driver src/pcl_publish.cpp)
+add_dependencies(rs_driver ${catkin_EXPORTED_TARGETS})
+target_link_libraries(rs_driver realsense2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
 ## Rename C++ executable without prefix
@@ -209,7 +209,7 @@ target_link_libraries(my_pcl_tutorial realsense2 ${catkin_LIBRARIES} ${OpenCV_LI
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_pcl_tutorial.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_rs_driver.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
