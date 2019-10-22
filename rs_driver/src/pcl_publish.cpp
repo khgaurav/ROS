@@ -8,9 +8,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 
 using pcl_ptr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
-ros::Publisher pub;
 
 // class filter_options
 // {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) try
     ros::NodeHandle n;
     ros::Publisher pcl_pub = n.advertise<PCLCloud>("rs_pcl", 100);
     ros::Publisher rgb_pub = n.advertise<sensor_msgs::Image>("rs_rgb", 100);
-
+    ros::Publisher cam_info = n.advertise<sensor_msgs::CameraInfo>("cam_info",100);
     // ros::Rate loop_rate(30);
 
     // Declare pointcloud object, for calculating pointclouds and texture mappings
@@ -67,6 +67,8 @@ int main(int argc, char *argv[]) try
     pipe.start();
     // Spatial    - edge-preserving spatial smoothing
     rs2::spatial_filter spat_filter;
+    rs2::threshold_filter thresh_filter;
+    rs2::decimation_filter dec_filter;
 
     // Initialize a vector that holds filters and their options
     // std::vector<filter_options> filters;
@@ -82,29 +84,36 @@ int main(int argc, char *argv[]) try
             break;
 
         rs2::frame filtered = depth; // Does not copy the frame, only adds a reference
-
-        // for (auto &&filter : filters)
-        // {
-        //     if (filter.is_enabled)
-        //     {
-        filtered = spat_filter.process(filtered);
-        //     }
-        // }
-
+        
+        // filtered = spat_filter.process(filtered);
+        thresh_filter.set_option(RS2_OPTION_MAX_DISTANCE, 4.0);
+        dec_filter.set_option(RS2_OPTION_FILTER_MAGNITUDE, 3);
+        filtered = dec_filter.process(filtered);
+        filtered = thresh_filter.process(filtered);
+        
         //RGB frame
         auto colour = frames.get_color_frame();
 
         // Generate the pointcloud and texture mappings
-        points = pc.calculate(depth);
+        points = pc.calculate(filtered);
 
         auto pcl_points = points_to_pcl(points);
-        pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PassThrough<pcl::PointXYZ> pass;
-        pass.setInputCloud(pcl_points);
-        pass.setFilterFieldName("z");
-        pass.setFilterLimits(0.0, 5.0);
-        auto pointer_u = *cloud_filtered;
-        pass.filter(pointer_u);
+        // pcl_ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+        // pcl::PassThrough<pcl::PointXYZ> pass;
+        // pass.setInputCloud(pcl_points);
+        // pass.setFilterFieldName("z");
+        // pass.setFilterLimits(0.0, 5.0);
+
+        // // Create the filtering object
+        // pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+        // sor.setInputCloud (pcl_points);
+        // sor.setMeanK (50);
+        // sor.setStddevMulThresh (1.0);
+	
+
+        auto pointer_u = *pcl_points;
+//      pass.filter(pointer_u);
+	    //sor.filter (pointer_u);
         pointer_u.header.frame_id = "pcl_frame";
         //Publish PCL after converting
         pcl_pub.publish(pointer_u);
@@ -113,12 +122,18 @@ int main(int argc, char *argv[]) try
         cv::Mat color(cv::Size(640, 480), CV_8UC3, (void *)colour.get_data(), cv::Mat::AUTO_STEP);
         cv_bridge::CvImage lo_img;
 
-        lo_img.encoding = "bgr8";               // or which enconding your data has
+        lo_img.encoding = "rgb8";               // or which enconding your data has
         lo_img.header.stamp = ros::Time::now(); //  or whatever timestamp suits here;
         lo_img.header.frame_id = "rgb_frame";   // frame id as neededby you
         lo_img.image = color;                   // point cv_bridge to your object
 
         rgb_pub.publish(lo_img.toImageMsg());
+
+        sensor_msgs::CameraInfo info;
+        info.height=colour.get_height();
+        info.width=colour.get_width();
+        cam_info.publish(info);
+
     }
 
     return EXIT_SUCCESS;

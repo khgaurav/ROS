@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rs_driver)
+project(ball_detector)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
-set(OpenCV_DIR /usr/share/OpenCV)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,14 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
-  OpenCV
-  cv_bridge
 )
-find_package(realsense2 REQUIRED)
-#find_package(PCL REQUIRED COMPONENTS common io visualization filters)
-find_package(OpenCV REQUIRED)
-
-#target_link_libraries(rs_drivers ${realsense2_LIBRARY})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -113,8 +105,8 @@ find_package(OpenCV REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES rs_driver
-#  CATKIN_DEPENDS librealsense2 pcl_conversions pcl_ros roscpp sensor_msgs
+#  LIBRARIES ball_detector
+#  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
 )
 
@@ -131,7 +123,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/rs_driver.cpp
+#   src/${PROJECT_NAME}/ball_detector.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -142,11 +134,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/rs_driver_node.cpp)
-add_executable(rs_driver src/pcl_publish.cpp)
-add_dependencies(rs_driver ${catkin_EXPORTED_TARGETS})
-target_link_libraries(rs_driver realsense2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+# add_executable(${PROJECT_NAME}_node src/ball_detector_node.cpp)
 
+add_executable(${PROJECT_NAME}_node src/ball_detector_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -156,12 +146,12 @@ target_link_libraries(rs_driver realsense2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -210,7 +200,7 @@ target_link_libraries(rs_driver realsense2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_rs_driver.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_ball_detector.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

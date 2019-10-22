@@ -1,0 +1,6 @@
+<!-- Not working as of now -->
+<launch>
+	<include file="$(find pclfilters)/launch/filters.launch"/>
+	<node pkg="obstacle_detector" type="obstacle_detector_node" name="obstacle_detector"/>
+	<node pkg="rviz" type="rviz" name="rviz"/>
+</launch>
